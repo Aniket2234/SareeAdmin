@@ -52,13 +52,6 @@ export default function HomePage() {
                     <Store className="w-6 h-6 text-blue-600" />
                   </div>
                 </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <span className="text-green-600 flex items-center">
-                    <ArrowUp className="w-4 h-4 mr-1" />
-                    +2.5%
-                  </span>
-                  <span className="text-muted-foreground ml-2">from last month</span>
-                </div>
               </CardContent>
             </Card>
             
@@ -74,13 +67,6 @@ export default function HomePage() {
                   <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                     <Package className="w-6 h-6 text-green-600" />
                   </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <span className="text-green-600 flex items-center">
-                    <ArrowUp className="w-4 h-4 mr-1" />
-                    +12.3%
-                  </span>
-                  <span className="text-muted-foreground ml-2">from last month</span>
                 </div>
               </CardContent>
             </Card>
@@ -98,12 +84,6 @@ export default function HomePage() {
                     <Database className="w-6 h-6 text-yellow-600" />
                   </div>
                 </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <span className="text-green-600 flex items-center">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    All healthy
-                  </span>
-                </div>
               </CardContent>
             </Card>
             
@@ -119,9 +99,6 @@ export default function HomePage() {
                   <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                     <CheckCircle className="w-6 h-6 text-green-600" />
                   </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <span className="text-muted-foreground">Uptime: 99.9%</span>
                 </div>
               </CardContent>
             </Card>
@@ -181,29 +158,24 @@ export default function HomePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Database Connections</span>
+                  <span className="text-muted-foreground">Active MongoDB Connections</span>
                   <span className="text-foreground font-medium" data-testid="text-db-connections">
-                    {stats?.activeConnections ?? 0}/10
+                    {stats?.activeConnections ?? 0}
                   </span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div 
-                    className="bg-primary h-2 rounded-full" 
-                    style={{ width: `${((stats?.activeConnections ?? 0) / 10) * 100}%` }}
-                  ></div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Total Shops</span>
+                  <span className="text-foreground font-medium">
+                    {stats?.totalShops ?? 0}
+                  </span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Storage Used</span>
-                  <span className="text-foreground font-medium">2.4 GB / 10 GB</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: "24%" }}></div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">API Requests (24h)</span>
-                  <span className="text-foreground font-medium">45,231</span>
+                  <span className="text-muted-foreground">Total Products</span>
+                  <span className="text-foreground font-medium">
+                    {stats?.totalProducts ?? 0}
+                  </span>
                 </div>
               </CardContent>
             </Card>
