@@ -143,8 +143,8 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
             <div className="space-y-2">
               <Label htmlFor="product-shop">Shop *</Label>
               <Select
-                onValueChange={(value) => form.setValue("shopId", value)}
-                value={form.watch("shopId")}
+                disabled={!!productToEdit}
+                defaultValue={productToEdit ? (productToEdit as any).shopId : ""}
               >
                 <SelectTrigger data-testid="select-product-shop">
                   <SelectValue placeholder="Select Shop" />
@@ -157,11 +157,7 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
                   ))}
                 </SelectContent>
               </Select>
-              {form.formState.errors.shopId && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.shopId.message}
-                </p>
-              )}
+              {/* Shop selection for editing is disabled */}
             </div>
           </div>
           
@@ -225,22 +221,12 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="product-size">Size</Label>
-              <Select
-                onValueChange={(value) => form.setValue("size", value)}
-                value={form.watch("size")}
-              >
-                <SelectTrigger data-testid="select-product-size">
-                  <SelectValue placeholder="Select Size" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sizes.map((size) => (
-                    <SelectItem key={size} value={size}>
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="product-material">Material</Label>
+              <Input
+                id="product-material"
+                placeholder="Cotton, Silk, etc."
+                {...form.register("material")}
+              />
             </div>
             
             <div className="space-y-2">
