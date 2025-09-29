@@ -92,7 +92,7 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
       const response = await fetch(`/api/shops/${selectedShopId}/categories`, { credentials: "include" });
       if (!response.ok) return [];
       const cats = await response.json();
-      return cats.map((cat: any) => cat.name);
+      return cats.map((cat: any) => ({ slug: cat.slug, name: cat.name }));
     },
     enabled: !!selectedShopId,
   });
@@ -195,9 +195,9 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
                   <SelectValue placeholder={!selectedShopId ? "Select shop first" : "Select Category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category: string) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {categories.map((category: { slug: string; name: string }) => (
+                    <SelectItem key={category.slug} value={category.slug}>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -102,6 +102,47 @@ export default function CatalogPage() {
   const categories = Array.from(new Set(products.map(p => p.category)));
   const colors = Array.from(new Set(products.flatMap(p => p.colors || []).filter(Boolean)));
 
+  // Fetch all categories for proper display names
+  const { data: allCategoriesData = {} } = useQuery({
+    queryKey: ["all-shop-categories", selectedShop],
+    queryFn: async () => {
+      if (!selectedShop || selectedShop === "all") {
+        // Fetch categories from all shops
+        const allCategories: { [slug: string]: string } = {};
+        for (const shop of shops) {
+          try {
+            const response = await fetch(`/api/shops/${shop._id}/categories`, { credentials: "include" });
+            if (response.ok) {
+              const cats = await response.json();
+              cats.forEach((cat: any) => {
+                allCategories[cat.slug] = cat.name;
+              });
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch categories for shop ${shop.name}:`, error);
+          }
+        }
+        return allCategories;
+      } else {
+        // Fetch categories from selected shop
+        const response = await fetch(`/api/shops/${selectedShop}/categories`, { credentials: "include" });
+        if (!response.ok) return {};
+        const cats = await response.json();
+        const categoriesMap: { [slug: string]: string } = {};
+        cats.forEach((cat: any) => {
+          categoriesMap[cat.slug] = cat.name;
+        });
+        return categoriesMap;
+      }
+    },
+    enabled: shops.length > 0,
+  });
+
+  // Function to get category display name from slug
+  const getCategoryDisplayName = (categorySlug: string) => {
+    return allCategoriesData[categorySlug] || categorySlug;
+  };
+
   const getShopName = (shopId: string) => {
     const shop = shops.find(s => s._id === shopId);
     return shop?.name || "Unknown Shop";
@@ -162,7 +203,7 @@ export default function CatalogPage() {
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
-                    {category}
+                    {getCategoryDisplayName(category)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -225,7 +266,7 @@ export default function CatalogPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Badge variant="secondary" className="text-xs">
-                        {product.category}
+                        {getCategoryDisplayName(product.category)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {getShopName((product as any).shopId)}
@@ -341,7 +382,7 @@ export default function CatalogPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Category</p>
-                <p className="font-medium text-foreground">{viewingProduct.category}</p>
+                <p className="font-medium text-foreground">{getCategoryDisplayName(viewingProduct.category)}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Price</p>
