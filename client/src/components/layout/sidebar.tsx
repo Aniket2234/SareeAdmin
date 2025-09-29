@@ -46,19 +46,19 @@ export function Sidebar() {
           {navigation.map((item) => {
             const isActive = location === item.href;
             return (
-              <Link key={item.name} href={item.href}>
-                <a
-                  className={cn(
-                    "flex items-center px-4 py-3 rounded-lg transition-colors",
-                    isActive
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
-                  data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.name}
-                </a>
+              <Link 
+                key={item.name} 
+                href={item.href}
+                className={cn(
+                  "flex items-center px-4 py-3 rounded-lg transition-colors",
+                  isActive
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+                data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
+              >
+                <item.icon className="w-5 h-5 mr-3" />
+                {item.name}
               </Link>
             );
           })}
