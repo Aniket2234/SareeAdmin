@@ -72,8 +72,8 @@ export default function CatalogPage() {
   });
 
   // Get unique categories and sizes for filters
-  const categories = [...new Set(products.map(p => p.category))];
-  const sizes = [...new Set(products.map(p => p.size).filter(Boolean))];
+  const categories = Array.from(new Set(products.map(p => p.category)));
+  const sizes = Array.from(new Set(products.map(p => p.size).filter((size): size is string => Boolean(size))));
 
   const getShopName = (shopId: string) => {
     const shop = shops.find(s => s._id === shopId);

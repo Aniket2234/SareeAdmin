@@ -5,7 +5,12 @@ import { Store, Package, Database, CheckCircle, ArrowUp, TriangleAlert } from "l
 import { Shop } from "@shared/schema";
 
 export default function HomePage() {
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    totalShops: number;
+    totalProducts: number;
+    activeConnections: number;
+    systemStatus: string;
+  }>({
     queryKey: ["/api/stats"],
   });
 
@@ -40,7 +45,7 @@ export default function HomePage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Shops</p>
                     <p className="text-2xl font-bold text-foreground" data-testid="text-total-shops">
-                      {stats?.totalShops || 0}
+                      {stats?.totalShops ?? 0}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -63,7 +68,7 @@ export default function HomePage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Products</p>
                     <p className="text-2xl font-bold text-foreground" data-testid="text-total-products">
-                      {stats?.totalProducts || 0}
+                      {stats?.totalProducts ?? 0}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -86,7 +91,7 @@ export default function HomePage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Active Connections</p>
                     <p className="text-2xl font-bold text-foreground" data-testid="text-active-connections">
-                      {stats?.activeConnections || 0}
+                      {stats?.activeConnections ?? 0}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -178,13 +183,13 @@ export default function HomePage() {
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Database Connections</span>
                   <span className="text-foreground font-medium" data-testid="text-db-connections">
-                    {stats?.activeConnections || 0}/10
+                    {stats?.activeConnections ?? 0}/10
                   </span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
                   <div 
                     className="bg-primary h-2 rounded-full" 
-                    style={{ width: `${((stats?.activeConnections || 0) / 10) * 100}%` }}
+                    style={{ width: `${((stats?.activeConnections ?? 0) / 10) * 100}%` }}
                   ></div>
                 </div>
                 
