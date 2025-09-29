@@ -22,17 +22,28 @@ export const shopSchema = z.object({
   updatedAt: z.date().default(() => new Date()),
 });
 
+// Category schema for individual shop databases
+export const categorySchema = z.object({
+  _id: z.string(),
+  name: z.string().min(1, "Category name is required"),
+  slug: z.string().min(1, "Category slug is required"),
+  description: z.string().min(1, "Description is required"),
+  imageUrl: z.string().optional(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
+});
+
+// Product schema for individual shop databases (based on actual structure found)
 export const productSchema = z.object({
   _id: z.string(),
-  shopId: z.string(),
   name: z.string().min(1, "Product name is required"),
-  description: z.string().min(1, "Description is required"),
-  category: z.string().min(1, "Category is required"),
+  category: z.string().min(1, "Category slug is required"),
   price: z.number().min(0, "Price must be positive"),
-  size: z.string().optional(),
-  color: z.string().optional(),
-  stock: z.number().min(0, "Stock must be positive").default(0),
+  material: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
   images: z.array(z.string()).default([]),
+  colors: z.array(z.string()).default([]),
+  inStock: z.boolean().default(true),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
@@ -40,12 +51,15 @@ export const productSchema = z.object({
 // Insert schemas (without _id and timestamps)
 export const insertUserSchema = userSchema.omit({ _id: true, createdAt: true });
 export const insertShopSchema = shopSchema.omit({ _id: true, createdAt: true, updatedAt: true });
+export const insertCategorySchema = categorySchema.omit({ _id: true, createdAt: true, updatedAt: true });
 export const insertProductSchema = productSchema.omit({ _id: true, createdAt: true, updatedAt: true });
 
 // Types
 export type User = z.infer<typeof userSchema>;
 export type Shop = z.infer<typeof shopSchema>;
+export type Category = z.infer<typeof categorySchema>;
 export type Product = z.infer<typeof productSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertShop = z.infer<typeof insertShopSchema>;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;

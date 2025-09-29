@@ -1,11 +1,12 @@
 import { MongoClient, Db, Collection, ObjectId, WithId, Document } from "mongodb";
 import session from "express-session";
 import MongoStore from "connect-mongo";
-import { User, Shop, Product, InsertUser, InsertShop, InsertProduct } from "@shared/schema";
+import { User, Shop, Product, Category, InsertUser, InsertShop, InsertProduct, InsertCategory } from "@shared/schema";
 
 // MongoDB document types with ObjectId
 type UserDoc = Omit<User, '_id'> & { _id: ObjectId };
 type ShopDoc = Omit<Shop, '_id'> & { _id: ObjectId };
+type CategoryDoc = Omit<Category, '_id'> & { _id: ObjectId };
 type ProductDoc = Omit<Product, '_id'> & { _id: ObjectId };
 
 export interface IStorage {
@@ -19,11 +20,18 @@ export interface IStorage {
   updateShop(id: string, shop: Partial<InsertShop>): Promise<Shop | undefined>;
   deleteShop(id: string): Promise<boolean>;
   
-  getProducts(shopId?: string): Promise<Product[]>;
-  getProduct(id: string): Promise<Product | undefined>;
-  createProduct(product: InsertProduct): Promise<Product>;
-  updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
-  deleteProduct(id: string): Promise<boolean>;
+  // Shop-specific database operations
+  getShopCategories(shopMongoUri: string): Promise<Category[]>;
+  getShopCategory(shopMongoUri: string, id: string): Promise<Category | undefined>;
+  createShopCategory(shopMongoUri: string, category: InsertCategory): Promise<Category>;
+  updateShopCategory(shopMongoUri: string, id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteShopCategory(shopMongoUri: string, id: string): Promise<boolean>;
+  
+  getShopProducts(shopMongoUri: string, categorySlug?: string): Promise<Product[]>;
+  getShopProduct(shopMongoUri: string, id: string): Promise<Product | undefined>;
+  createShopProduct(shopMongoUri: string, product: InsertProduct): Promise<Product>;
+  updateShopProduct(shopMongoUri: string, id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteShopProduct(shopMongoUri: string, id: string): Promise<boolean>;
   
   testShopConnection(mongoUri: string): Promise<boolean>;
   
@@ -35,7 +43,6 @@ export class MongoStorage implements IStorage {
   private db: Db;
   private users: Collection<UserDoc>;
   private shops: Collection<ShopDoc>;
-  private products: Collection<ProductDoc>;
   public sessionStore: session.Store;
 
   constructor() {
@@ -48,7 +55,6 @@ export class MongoStorage implements IStorage {
     this.db = this.client.db();
     this.users = this.db.collection("users");
     this.shops = this.db.collection("shops");
-    this.products = this.db.collection("products");
     
     this.sessionStore = MongoStore.create({
       client: this.client,
@@ -66,7 +72,6 @@ export class MongoStorage implements IStorage {
       // Create indexes
       await this.users.createIndex({ email: 1 }, { unique: true });
       await this.shops.createIndex({ name: 1 });
-      await this.products.createIndex({ shopId: 1 });
     } catch (error) {
       console.error("MongoDB connection error:", error);
     }
@@ -131,49 +136,146 @@ export class MongoStorage implements IStorage {
 
   async deleteShop(id: string): Promise<boolean> {
     const result = await this.shops.deleteOne({ _id: new ObjectId(id) });
-    // Also delete all products for this shop
-    await this.products.deleteMany({ shopId: id });
+    // Note: Products are now stored in individual shop databases, not in the main database
     return result.deletedCount > 0;
   }
 
-  async getProducts(shopId?: string): Promise<Product[]> {
-    const filter = shopId ? { shopId } : {};
-    const products = await this.products.find(filter).toArray();
-    return products.map(product => ({ ...product, _id: product._id.toString() }));
+  // Helper method to get connection to a specific shop's database
+  private async getShopDatabase(shopMongoUri: string): Promise<{ client: MongoClient; db: Db }> {
+    const client = new MongoClient(shopMongoUri);
+    await client.connect();
+    return { client, db: client.db() };
   }
 
-  async getProduct(id: string): Promise<Product | undefined> {
-    const product = await this.products.findOne({ _id: new ObjectId(id) });
-    return product ? { ...product, _id: product._id.toString() } : undefined;
+  // Category CRUD operations for individual shop databases
+  async getShopCategories(shopMongoUri: string): Promise<Category[]> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const categories = await db.collection<CategoryDoc>("categories").find({}).toArray();
+      return categories.map(cat => ({ ...cat, _id: cat._id.toString() }));
+    } finally {
+      await client.close();
+    }
   }
 
-  async createProduct(productData: InsertProduct): Promise<Product> {
-    const result = await this.products.insertOne({
-      ...productData,
-      _id: new ObjectId(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as ProductDoc);
-    
-    const product = await this.products.findOne({ _id: result.insertedId });
-    if (!product) throw new Error("Failed to create product");
-    
-    return { ...product, _id: product._id.toString() };
+  async getShopCategory(shopMongoUri: string, id: string): Promise<Category | undefined> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const category = await db.collection<CategoryDoc>("categories").findOne({ _id: new ObjectId(id) });
+      return category ? { ...category, _id: category._id.toString() } : undefined;
+    } finally {
+      await client.close();
+    }
   }
 
-  async updateProduct(id: string, productData: Partial<InsertProduct>): Promise<Product | undefined> {
-    const result = await this.products.findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      { $set: { ...productData, updatedAt: new Date() } },
-      { returnDocument: "after" }
-    );
-    
-    return result ? { ...result, _id: result._id.toString() } : undefined;
+  async createShopCategory(shopMongoUri: string, categoryData: InsertCategory): Promise<Category> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const result = await db.collection<CategoryDoc>("categories").insertOne({
+        ...categoryData,
+        _id: new ObjectId(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as CategoryDoc);
+      
+      const category = await db.collection<CategoryDoc>("categories").findOne({ _id: result.insertedId });
+      if (!category) throw new Error("Failed to create category");
+      
+      return { ...category, _id: category._id.toString() };
+    } finally {
+      await client.close();
+    }
   }
 
-  async deleteProduct(id: string): Promise<boolean> {
-    const result = await this.products.deleteOne({ _id: new ObjectId(id) });
-    return result.deletedCount > 0;
+  async updateShopCategory(shopMongoUri: string, id: string, categoryData: Partial<InsertCategory>): Promise<Category | undefined> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const result = await db.collection<CategoryDoc>("categories").findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $set: { ...categoryData, updatedAt: new Date() } },
+        { returnDocument: "after" }
+      );
+      
+      return result ? { ...result, _id: result._id.toString() } : undefined;
+    } finally {
+      await client.close();
+    }
+  }
+
+  async deleteShopCategory(shopMongoUri: string, id: string): Promise<boolean> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const result = await db.collection<CategoryDoc>("categories").deleteOne({ _id: new ObjectId(id) });
+      return result.deletedCount > 0;
+    } finally {
+      await client.close();
+    }
+  }
+
+  // Product CRUD operations for individual shop databases
+  async getShopProducts(shopMongoUri: string, categorySlug?: string): Promise<Product[]> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const filter = categorySlug ? { category: categorySlug } : {};
+      const products = await db.collection<ProductDoc>("products").find(filter).toArray();
+      return products.map(product => ({ ...product, _id: product._id.toString() }));
+    } finally {
+      await client.close();
+    }
+  }
+
+  async getShopProduct(shopMongoUri: string, id: string): Promise<Product | undefined> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const product = await db.collection<ProductDoc>("products").findOne({ _id: new ObjectId(id) });
+      return product ? { ...product, _id: product._id.toString() } : undefined;
+    } finally {
+      await client.close();
+    }
+  }
+
+  async createShopProduct(shopMongoUri: string, productData: InsertProduct): Promise<Product> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const result = await db.collection<ProductDoc>("products").insertOne({
+        ...productData,
+        _id: new ObjectId(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as ProductDoc);
+      
+      const product = await db.collection<ProductDoc>("products").findOne({ _id: result.insertedId });
+      if (!product) throw new Error("Failed to create product");
+      
+      return { ...product, _id: product._id.toString() };
+    } finally {
+      await client.close();
+    }
+  }
+
+  async updateShopProduct(shopMongoUri: string, id: string, productData: Partial<InsertProduct>): Promise<Product | undefined> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const result = await db.collection<ProductDoc>("products").findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $set: { ...productData, updatedAt: new Date() } },
+        { returnDocument: "after" }
+      );
+      
+      return result ? { ...result, _id: result._id.toString() } : undefined;
+    } finally {
+      await client.close();
+    }
+  }
+
+  async deleteShopProduct(shopMongoUri: string, id: string): Promise<boolean> {
+    const { client, db } = await this.getShopDatabase(shopMongoUri);
+    try {
+      const result = await db.collection<ProductDoc>("products").deleteOne({ _id: new ObjectId(id) });
+      return result.deletedCount > 0;
+    } finally {
+      await client.close();
+    }
   }
 
   async testShopConnection(mongoUri: string): Promise<boolean> {
