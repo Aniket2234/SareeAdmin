@@ -25,21 +25,46 @@ export default function CatalogPage() {
   });
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products", selectedShop],
+    queryKey: ["products", selectedShop],
     queryFn: async () => {
-      const url = selectedShop && selectedShop !== "all" ? `/api/products?shopId=${selectedShop}` : "/api/products";
-      const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch products");
-      return response.json();
+      if (selectedShop && selectedShop !== "all") {
+        // Fetch products from specific shop
+        const response = await fetch(`/api/shops/${selectedShop}/products`, { credentials: "include" });
+        if (!response.ok) throw new Error("Failed to fetch products");
+        const products = await response.json();
+        // Add shopId to each product for tracking
+        return products.map((product: Product) => ({ ...product, shopId: selectedShop }));
+      } else {
+        // Fetch products from all shops
+        const shopsResponse = await fetch("/api/shops", { credentials: "include" });
+        if (!shopsResponse.ok) throw new Error("Failed to fetch shops");
+        const shops = await shopsResponse.json();
+        
+        const allProducts = [];
+        for (const shop of shops) {
+          try {
+            const response = await fetch(`/api/shops/${shop._id}/products`, { credentials: "include" });
+            if (response.ok) {
+              const shopProducts = await response.json();
+              // Add shopId to each product for tracking
+              const productsWithShopId = shopProducts.map((product: Product) => ({ ...product, shopId: shop._id }));
+              allProducts.push(...productsWithShopId);
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch products for shop ${shop.name}:`, error);
+          }
+        }
+        return allProducts;
+      }
     },
   });
 
   const deleteProductMutation = useMutation({
-    mutationFn: async (productId: string) => {
-      await apiRequest("DELETE", `/api/products/${productId}`);
+    mutationFn: async ({ productId, shopId }: { productId: string; shopId: string }) => {
+      await apiRequest("DELETE", `/api/shops/${shopId}/products/${productId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Product deleted",
@@ -57,7 +82,7 @@ export default function CatalogPage() {
 
   const handleDeleteProduct = (product: Product) => {
     if (window.confirm(`Are you sure you want to delete "${product.name}"?`)) {
-      deleteProductMutation.mutate(product._id);
+      deleteProductMutation.mutate({ productId: product._id, shopId: (product as any).shopId || selectedShop });
     }
   };
 
@@ -66,14 +91,14 @@ export default function CatalogPage() {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    const matchesSize = selectedSize === "all" || product.size === selectedSize;
+    const matchesSize = selectedSize === "all" || (product.colors && product.colors.includes(selectedSize));
     
     return matchesSearch && matchesCategory && matchesSize;
   });
 
-  // Get unique categories and sizes for filters
+  // Get unique categories and colors for filters
   const categories = Array.from(new Set(products.map(p => p.category)));
-  const sizes = Array.from(new Set(products.map(p => p.size).filter((size): size is string => Boolean(size))));
+  const sizes = Array.from(new Set(products.flatMap(p => p.colors || []).filter(Boolean)));
 
   const getShopName = (shopId: string) => {
     const shop = shops.find(s => s._id === shopId);
@@ -201,7 +226,7 @@ export default function CatalogPage() {
                         {product.category}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {getShopName(product.shopId)}
+                        {getShopName((product as any).shopId)}
                       </span>
                     </div>
                     <h3 className="font-semibold text-foreground mb-2" data-testid={`text-product-name-${product._id}`}>
@@ -215,19 +240,18 @@ export default function CatalogPage() {
                         ₹{product.price.toLocaleString()}
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        Stock: <span data-testid={`text-product-stock-${product._id}`}>{product.stock}</span>
+                        In Stock: <span data-testid={`text-product-stock-${product._id}`}>{product.inStock ? 'Yes' : 'No'}</span>
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      {product.size && (
-                        <Badge variant="outline" className="text-xs">
-                          {product.size}
-                        </Badge>
-                      )}
-                      {product.color && (
-                        <Badge variant="outline" className="text-xs">
-                          {product.color}
-                        </Badge>
+                      {product.colors && product.colors.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {product.colors.map((color, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {color}
+                            </Badge>
+                          ))}
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center space-x-2 mt-4">
