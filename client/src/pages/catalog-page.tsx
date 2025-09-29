@@ -14,10 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function CatalogPage() {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedShop, setSelectedShop] = useState<string>("");
+  const [selectedShop, setSelectedShop] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedSize, setSelectedSize] = useState("all");
   const { toast } = useToast();
 
   const { data: shops = [] } = useQuery<Shop[]>({
@@ -27,7 +27,7 @@ export default function CatalogPage() {
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products", selectedShop],
     queryFn: async () => {
-      const url = selectedShop ? `/api/products?shopId=${selectedShop}` : "/api/products";
+      const url = selectedShop && selectedShop !== "all" ? `/api/products?shopId=${selectedShop}` : "/api/products";
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch products");
       return response.json();
@@ -65,8 +65,8 @@ export default function CatalogPage() {
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || product.category === selectedCategory;
-    const matchesSize = !selectedSize || product.size === selectedSize;
+    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+    const matchesSize = selectedSize === "all" || product.size === selectedSize;
     
     return matchesSearch && matchesCategory && matchesSize;
   });
@@ -98,7 +98,7 @@ export default function CatalogPage() {
                   <SelectValue placeholder="All Shops" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Shops</SelectItem>
+                  <SelectItem value="all">All Shops</SelectItem>
                   {shops.map((shop) => (
                     <SelectItem key={shop._id} value={shop._id}>
                       {shop.name}
@@ -132,7 +132,7 @@ export default function CatalogPage() {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -145,7 +145,7 @@ export default function CatalogPage() {
                 <SelectValue placeholder="All Sizes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Sizes</SelectItem>
+                <SelectItem value="all">All Sizes</SelectItem>
                 {sizes.map((size) => (
                   <SelectItem key={size} value={size}>
                     {size}
@@ -157,8 +157,8 @@ export default function CatalogPage() {
               variant="outline" 
               onClick={() => {
                 setSearchTerm("");
-                setSelectedCategory("");
-                setSelectedSize("");
+                setSelectedCategory("all");
+                setSelectedSize("all");
               }}
               data-testid="button-clear-filters"
             >
