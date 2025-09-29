@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,11 +20,12 @@ interface AddProductModalProps {
   productToEdit?: Product;
 }
 
-const categories = ["Shirts", "Pants", "Dresses", "Accessories", "Shoes", "Jackets"];
+// Categories will be fetched from the selected shop's database
 const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
 export function AddProductModal({ open, onOpenChange, shops, productToEdit }: AddProductModalProps) {
   const { toast } = useToast();
+  const [selectedShopId, setSelectedShopId] = useState<string>(productToEdit ? (productToEdit as any).shopId || "" : "");
   
   const form = useForm<InsertProduct>({
     resolver: zodResolver(insertProductSchema),
@@ -82,9 +84,24 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
     },
   });
 
+  // Fetch categories from selected shop
+  const { data: categories = [] } = useQuery({
+    queryKey: ["shop-categories", selectedShopId],
+    queryFn: async () => {
+      if (!selectedShopId) return [];
+      const response = await fetch(`/api/shops/${selectedShopId}/categories`, { credentials: "include" });
+      if (!response.ok) return [];
+      const cats = await response.json();
+      return cats.map((cat: any) => cat.name);
+    },
+    enabled: !!selectedShopId,
+  });
+
   // Reset form when productToEdit changes
   useEffect(() => {
     if (productToEdit) {
+      const shopId = (productToEdit as any).shopId || "";
+      setSelectedShopId(shopId);
       form.reset({
         name: productToEdit.name,
         description: productToEdit.description,
@@ -96,6 +113,7 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
         images: productToEdit.images || [],
       });
     } else {
+      setSelectedShopId("");
       form.reset({
         name: "",
         description: "",
@@ -110,7 +128,8 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
   }, [productToEdit, form]);
 
   const onSubmit = (data: InsertProduct & { shopId?: string }) => {
-    createProductMutation.mutate(data);
+    const submitData = { ...data, shopId: selectedShopId };
+    createProductMutation.mutate(submitData);
   };
 
   return (
@@ -143,11 +162,12 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
             <div className="space-y-2">
               <Label htmlFor="product-shop">Shop *</Label>
               <Select
+                onValueChange={(value) => setSelectedShopId(value)}
+                value={selectedShopId}
                 disabled={!!productToEdit}
-                defaultValue={productToEdit ? (productToEdit as any).shopId : ""}
               >
                 <SelectTrigger data-testid="select-product-shop">
-                  <SelectValue placeholder="Select Shop" />
+                  <SelectValue placeholder={productToEdit ? shops.find(s => s._id === selectedShopId)?.name || "Shop" : "Select Shop"} />
                 </SelectTrigger>
                 <SelectContent>
                   {shops.map((shop) => (
@@ -157,7 +177,9 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
                   ))}
                 </SelectContent>
               </Select>
-              {/* Shop selection for editing is disabled */}
+              {productToEdit && (
+                <p className="text-xs text-muted-foreground">Shop cannot be changed when editing</p>
+              )}
             </div>
           </div>
           
@@ -167,9 +189,10 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
               <Select
                 onValueChange={(value) => form.setValue("category", value)}
                 value={form.watch("category")}
+                disabled={!selectedShopId}
               >
                 <SelectTrigger data-testid="select-product-category">
-                  <SelectValue placeholder="Select Category" />
+                  <SelectValue placeholder={!selectedShopId ? "Select shop first" : "Select Category"} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
@@ -179,6 +202,9 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
                   ))}
                 </SelectContent>
               </Select>
+              {!selectedShopId && (
+                <p className="text-xs text-muted-foreground">Please select a shop to see categories</p>
+              )}
               {form.formState.errors.category && (
                 <p className="text-sm text-destructive">
                   {form.formState.errors.category.message}
@@ -263,7 +289,7 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
               disabled={createProductMutation.isPending}
               data-testid="button-submit-product"
             >
-              {createProductMutation.isPending ? "Adding Product..." : "Add Product"}
+              {createProductMutation.isPending ? (productToEdit ? "Updating Product..." : "Adding Product...") : (productToEdit ? "Update Product" : "Add Product")}
             </Button>
             <Button 
               type="button" 
