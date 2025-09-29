@@ -260,8 +260,19 @@ export default function CatalogPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredProducts.map((product) => (
                 <Card key={product._id} className="overflow-hidden hover:shadow-lg transition-shadow" data-testid={`card-product-${product._id}`}>
-                  <div className="aspect-square bg-muted flex items-center justify-center">
-                    <Package className="w-12 h-12 text-muted-foreground" />
+                  <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                    {product.images && product.images.length > 0 ? (
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+                        }}
+                      />
+                    ) : null}
+                    <Package className={`w-12 h-12 text-muted-foreground ${product.images && product.images.length > 0 ? 'hidden' : 'flex'}`} />
                   </div>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">

@@ -287,6 +287,25 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
             </div>
           </div>
           
+          <div className="space-y-2">
+            <Label htmlFor="product-images">Image URLs (comma-separated)</Label>
+            <Textarea
+              id="product-images"
+              rows={2}
+              placeholder="e.g., https://example.com/image1.jpg, https://example.com/image2.jpg"
+              data-testid="textarea-product-images"
+              value={form.watch("images")?.join(", ") || ""}
+              onChange={(e) => {
+                const imagesString = e.target.value;
+                const imagesArray = imagesString.split(",").map(url => url.trim()).filter(url => url.length > 0);
+                form.setValue("images", imagesArray);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Add image URLs separated by commas. The first image will be used as the main product image.
+            </p>
+          </div>
+          
           <div className="flex items-center space-x-4 pt-4">
             <Button 
               type="submit" 
