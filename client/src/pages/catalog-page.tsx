@@ -17,7 +17,7 @@ export default function CatalogPage() {
   const [selectedShop, setSelectedShop] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSize, setSelectedSize] = useState("all");
+  const [selectedColor, setSelectedColor] = useState("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
@@ -93,14 +93,14 @@ export default function CatalogPage() {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    const matchesSize = selectedSize === "all" || (product.colors && product.colors.includes(selectedSize));
+    const matchesColor = selectedColor === "all" || (product.colors && product.colors.includes(selectedColor));
     
-    return matchesSearch && matchesCategory && matchesSize;
+    return matchesSearch && matchesCategory && matchesColor;
   });
 
   // Get unique categories and colors for filters
   const categories = Array.from(new Set(products.map(p => p.category)));
-  const sizes = Array.from(new Set(products.flatMap(p => p.colors || []).filter(Boolean)));
+  const colors = Array.from(new Set(products.flatMap(p => p.colors || []).filter(Boolean)));
 
   const getShopName = (shopId: string) => {
     const shop = shops.find(s => s._id === shopId);
@@ -167,15 +167,15 @@ export default function CatalogPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedSize} onValueChange={setSelectedSize}>
+            <Select value={selectedColor} onValueChange={setSelectedColor}>
               <SelectTrigger>
-                <SelectValue placeholder="All Sizes" />
+                <SelectValue placeholder="All Colors" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Sizes</SelectItem>
-                {sizes.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
+                <SelectItem value="all">All Colors</SelectItem>
+                {colors.map((color) => (
+                  <SelectItem key={color} value={color}>
+                    {color}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -185,7 +185,7 @@ export default function CatalogPage() {
               onClick={() => {
                 setSearchTerm("");
                 setSelectedCategory("all");
-                setSelectedSize("all");
+                setSelectedColor("all");
               }}
               data-testid="button-clear-filters"
             >

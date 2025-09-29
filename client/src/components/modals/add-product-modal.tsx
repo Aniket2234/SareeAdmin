@@ -195,7 +195,7 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
                   <SelectValue placeholder={!selectedShopId ? "Select shop first" : "Select Category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
+                  {categories.map((category: string) => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
@@ -256,29 +256,34 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="product-color">Color</Label>
+              <Label htmlFor="product-colors">Colors (comma-separated)</Label>
               <Input
-                id="product-color"
-                placeholder="e.g., Blue, Red"
-                data-testid="input-product-color"
-                {...form.register("color")}
+                id="product-colors"
+                placeholder="e.g., Blue, Red, Green"
+                data-testid="input-product-colors"
+                value={form.watch("colors")?.join(", ") || ""}
+                onChange={(e) => {
+                  const colorsString = e.target.value;
+                  const colorsArray = colorsString.split(",").map(c => c.trim()).filter(c => c.length > 0);
+                  form.setValue("colors", colorsArray);
+                }}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="product-stock">Stock Quantity *</Label>
-              <Input
-                id="product-stock"
-                type="number"
-                placeholder="0"
-                data-testid="input-product-stock"
-                {...form.register("stock", { valueAsNumber: true })}
-              />
-              {form.formState.errors.stock && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.stock.message}
-                </p>
-              )}
+              <Label htmlFor="product-stock">In Stock</Label>
+              <Select
+                onValueChange={(value) => form.setValue("inStock", value === "true")}
+                value={form.watch("inStock") ? "true" : "false"}
+              >
+                <SelectTrigger data-testid="select-product-stock">
+                  <SelectValue placeholder="Select stock status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
