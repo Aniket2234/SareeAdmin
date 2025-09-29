@@ -1,84 +1,52 @@
 import { z } from "zod";
 import { createInsertSchema } from "drizzle-zod";
-import { pgTable, varchar, text, timestamp, integer, decimal, jsonb } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
-// Drizzle table definitions for PostgreSQL
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  username: varchar("username", { length: 255 }).notNull().unique(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  password: varchar("password", { length: 255 }).notNull(),
-  role: varchar("role", { length: 50 }).notNull().default("admin"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// MongoDB schema definitions using Zod
 
-export const shops = pgTable("shops", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  name: varchar("name", { length: 255 }).notNull(),
-  location: varchar("location", { length: 255 }).notNull(),
-  mongoUri: varchar("mongo_uri", { length: 500 }).notNull(),
-  description: text("description"),
-  status: varchar("status", { length: 50 }).notNull().default("pending"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const products = pgTable("products", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  shopId: varchar("shop_id", { length: 255 }).notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  description: text("description").notNull(),
-  category: varchar("category", { length: 255 }).notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  size: varchar("size", { length: 100 }),
-  color: varchar("color", { length: 100 }),
-  stock: integer("stock").notNull().default(0),
-  images: jsonb("images").notNull().default([]),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Relations
-export const shopsRelations = relations(shops, ({ many }) => ({
-  products: many(products),
-}));
-
-export const productsRelations = relations(products, ({ one }) => ({
-  shop: one(shops, {
-    fields: [products.shopId],
-    references: [shops.id],
-  }),
-}));
-
-// Zod schemas for validation
-export const insertUserSchema = createInsertSchema(users, {
+export const userSchema = z.object({
+  _id: z.string(),
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["admin", "user"]).default("admin"),
+  createdAt: z.date().default(() => new Date()),
 });
 
-export const insertShopSchema = createInsertSchema(shops, {
+export const shopSchema = z.object({
+  _id: z.string(),
   name: z.string().min(1, "Shop name is required"),
   location: z.string().min(1, "Location is required"),
   mongoUri: z.string().min(1, "MongoDB URI is required"),
+  description: z.string().optional(),
   status: z.enum(["active", "pending", "inactive"]).default("pending"),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
-export const insertProductSchema = createInsertSchema(products, {
+export const productSchema = z.object({
+  _id: z.string(),
+  shopId: z.string(),
   name: z.string().min(1, "Product name is required"),
   description: z.string().min(1, "Description is required"),
   category: z.string().min(1, "Category is required"),
-  price: z.string().transform((val) => parseFloat(val)),
+  price: z.number().min(0, "Price must be positive"),
+  size: z.string().optional(),
+  color: z.string().optional(),
   stock: z.number().min(0, "Stock must be positive").default(0),
   images: z.array(z.string()).default([]),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
 });
 
+// Insert schemas (without _id and timestamps)
+export const insertUserSchema = userSchema.omit({ _id: true, createdAt: true });
+export const insertShopSchema = shopSchema.omit({ _id: true, createdAt: true, updatedAt: true });
+export const insertProductSchema = productSchema.omit({ _id: true, createdAt: true, updatedAt: true });
+
 // Types
-export type User = typeof users.$inferSelect;
-export type Shop = typeof shops.$inferSelect;
-export type Product = typeof products.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type InsertShop = typeof shops.$inferInsert;
-export type InsertProduct = typeof products.$inferInsert;
+export type User = z.infer<typeof userSchema>;
+export type Shop = z.infer<typeof shopSchema>;
+export type Product = z.infer<typeof productSchema>;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertShop = z.infer<typeof insertShopSchema>;
+export type InsertProduct = z.infer<typeof insertProductSchema>;

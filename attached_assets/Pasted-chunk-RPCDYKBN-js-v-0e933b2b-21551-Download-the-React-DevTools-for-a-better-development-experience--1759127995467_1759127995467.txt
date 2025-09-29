@@ -1,0 +1,55 @@
+chunk-RPCDYKBN.js?v=0e933b2b:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/api/user:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+chunk-RPCDYKBN.js?v=0e933b2b:521 Warning: Cannot update a component (`AuthPage`) while rendering a different component (`AuthPage`). To locate the bad setState() call inside `AuthPage`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render
+    at AuthPage (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/src/pages/auth-page.tsx:36:53)
+    at Route (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0e933b2b:323:16)
+    at Switch (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0e933b2b:379:17)
+    at Router
+    at Provider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5AJU3CG7.js?v=0e933b2b:38:15)
+    at TooltipProvider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=0e933b2b:60:5)
+    at AuthProvider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at QueryClientProvider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=0e933b2b:2805:3)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=0e933b2b:521
+chunk-RPCDYKBN.js?v=0e933b2b:11595 Uncaught Error: Rendered fewer hooks than expected. This may be caused by an accidental early return statement.
+    at renderWithHooks (chunk-RPCDYKBN.js?v=0e933b2b:11595:19)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=0e933b2b:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=0e933b2b:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=0e933b2b:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=0e933b2b:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=0e933b2b:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=0e933b2b:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=0e933b2b:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=0e933b2b:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=0e933b2b:19116:15)
+chunk-RPCDYKBN.js?v=0e933b2b:521 Warning: validateDOMNesting(...): <a> cannot appear as a descendant of <a>.
+    at a
+    at a
+    at https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0e933b2b:337:18
+    at nav
+    at div
+    at div
+    at Sidebar (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/src/components/layout/sidebar.tsx:39:22)
+    at div
+    at HomePage (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/src/pages/home-page.tsx:24:27)
+    at Route (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0e933b2b:323:16)
+    at ProtectedRoute (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0e933b2b:379:17)
+    at Router
+    at Provider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5AJU3CG7.js?v=0e933b2b:38:15)
+    at TooltipProvider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=0e933b2b:60:5)
+    at AuthProvider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at QueryClientProvider (https://bc18753e-f38f-4a05-904d-6a99c988477b-00-1dlafercr3lyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=0e933b2b:2805:3)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=0e933b2b:521
+chunk-RPCDYKBN.js?v=0e933b2b:11595 Uncaught Error: Rendered fewer hooks than expected. This may be caused by an accidental early return statement.
+    at renderWithHooks (chunk-RPCDYKBN.js?v=0e933b2b:11595:19)
+    at updateFunctionComponent (chunk-RPCDYKBN.js?v=0e933b2b:14582:28)
+    at beginWork (chunk-RPCDYKBN.js?v=0e933b2b:15924:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=0e933b2b:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=0e933b2b:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=0e933b2b:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=0e933b2b:19116:15)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=0e933b2b:18874:28)
+    at flushSyncCallbacks (chunk-RPCDYKBN.js?v=0e933b2b:9119:30)
+    at chunk-RPCDYKBN.js?v=0e933b2b:18627:21

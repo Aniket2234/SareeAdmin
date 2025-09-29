@@ -1,8 +1,12 @@
+import { MongoClient, Db, Collection, ObjectId, WithId, Document } from "mongodb";
 import session from "express-session";
-import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { eq } from "drizzle-orm";
-import { users, shops, products, User, Shop, Product, InsertUser, InsertShop, InsertProduct } from "@shared/schema";
-import { db } from "./db";
+import MongoStore from "connect-mongo";
+import { User, Shop, Product, InsertUser, InsertShop, InsertProduct } from "@shared/schema";
+
+// MongoDB document types with ObjectId
+type UserDoc = Omit<User, '_id'> & { _id: ObjectId };
+type ShopDoc = Omit<Shop, '_id'> & { _id: ObjectId };
+type ProductDoc = Omit<Product, '_id'> & { _id: ObjectId };
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -26,120 +30,158 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class DatabaseStorage implements IStorage {
+export class MongoStorage implements IStorage {
+  private client: MongoClient;
+  private db: Db;
+  private users: Collection<UserDoc>;
+  private shops: Collection<ShopDoc>;
+  private products: Collection<ProductDoc>;
   public sessionStore: session.Store;
 
   constructor() {
-    // Use memory store for sessions in development (no persistence between restarts)
-    const MemoryStore = session.MemoryStore;
-    this.sessionStore = new MemoryStore();
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error("MONGODB_URI environment variable is required");
+    }
+    
+    this.client = new MongoClient(mongoUri);
+    this.db = this.client.db();
+    this.users = this.db.collection("users");
+    this.shops = this.db.collection("shops");
+    this.products = this.db.collection("products");
+    
+    this.sessionStore = MongoStore.create({
+      client: this.client,
+      dbName: this.db.databaseName,
+    });
+    
+    this.initialize();
+  }
+
+  private async initialize() {
+    try {
+      await this.client.connect();
+      console.log("Connected to MongoDB");
+      
+      // Create indexes
+      await this.users.createIndex({ email: 1 }, { unique: true });
+      await this.shops.createIndex({ name: 1 });
+      await this.products.createIndex({ shopId: 1 });
+    } catch (error) {
+      console.error("MongoDB connection error:", error);
+    }
   }
 
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    const user = await this.users.findOne({ _id: new ObjectId(id) });
+    return user ? { ...user, _id: user._id.toString() } : undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
+    const user = await this.users.findOne({ email });
+    return user ? { ...user, _id: user._id.toString() } : undefined;
   }
 
   async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
-    return user;
+    const result = await this.users.insertOne({
+      ...userData,
+      _id: new ObjectId(),
+      createdAt: new Date(),
+    } as UserDoc);
+    
+    const user = await this.users.findOne({ _id: result.insertedId });
+    if (!user) throw new Error("Failed to create user");
+    
+    return { ...user, _id: user._id.toString() };
   }
 
   async getShops(): Promise<Shop[]> {
-    return await db.select().from(shops);
+    const shops = await this.shops.find({}).toArray();
+    return shops.map(shop => ({ ...shop, _id: shop._id.toString() }));
   }
 
   async getShop(id: string): Promise<Shop | undefined> {
-    const [shop] = await db.select().from(shops).where(eq(shops.id, id));
-    return shop || undefined;
+    const shop = await this.shops.findOne({ _id: new ObjectId(id) });
+    return shop ? { ...shop, _id: shop._id.toString() } : undefined;
   }
 
   async createShop(shopData: InsertShop): Promise<Shop> {
-    const [shop] = await db
-      .insert(shops)
-      .values({
-        ...shopData,
-        updatedAt: new Date(),
-      })
-      .returning();
-    return shop;
+    const result = await this.shops.insertOne({
+      ...shopData,
+      _id: new ObjectId(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as ShopDoc);
+    
+    const shop = await this.shops.findOne({ _id: result.insertedId });
+    if (!shop) throw new Error("Failed to create shop");
+    
+    return { ...shop, _id: shop._id.toString() };
   }
 
   async updateShop(id: string, shopData: Partial<InsertShop>): Promise<Shop | undefined> {
-    const [shop] = await db
-      .update(shops)
-      .set({
-        ...shopData,
-        updatedAt: new Date(),
-      })
-      .where(eq(shops.id, id))
-      .returning();
-    return shop || undefined;
+    const result = await this.shops.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: { ...shopData, updatedAt: new Date() } },
+      { returnDocument: "after" }
+    );
+    
+    return result ? { ...result, _id: result._id.toString() } : undefined;
   }
 
   async deleteShop(id: string): Promise<boolean> {
-    // First delete all products for this shop
-    await db.delete(products).where(eq(products.shopId, id));
-    
-    // Then delete the shop
-    const result = await db.delete(shops).where(eq(shops.id, id));
-    return result.rowCount !== null && result.rowCount > 0;
+    const result = await this.shops.deleteOne({ _id: new ObjectId(id) });
+    // Also delete all products for this shop
+    await this.products.deleteMany({ shopId: id });
+    return result.deletedCount > 0;
   }
 
   async getProducts(shopId?: string): Promise<Product[]> {
-    if (shopId) {
-      return await db.select().from(products).where(eq(products.shopId, shopId));
-    }
-    return await db.select().from(products);
+    const filter = shopId ? { shopId } : {};
+    const products = await this.products.find(filter).toArray();
+    return products.map(product => ({ ...product, _id: product._id.toString() }));
   }
 
   async getProduct(id: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
-    return product || undefined;
+    const product = await this.products.findOne({ _id: new ObjectId(id) });
+    return product ? { ...product, _id: product._id.toString() } : undefined;
   }
 
   async createProduct(productData: InsertProduct): Promise<Product> {
-    const [product] = await db
-      .insert(products)
-      .values({
-        ...productData,
-        updatedAt: new Date(),
-      })
-      .returning();
-    return product;
+    const result = await this.products.insertOne({
+      ...productData,
+      _id: new ObjectId(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as ProductDoc);
+    
+    const product = await this.products.findOne({ _id: result.insertedId });
+    if (!product) throw new Error("Failed to create product");
+    
+    return { ...product, _id: product._id.toString() };
   }
 
   async updateProduct(id: string, productData: Partial<InsertProduct>): Promise<Product | undefined> {
-    const [product] = await db
-      .update(products)
-      .set({
-        ...productData,
-        updatedAt: new Date(),
-      })
-      .where(eq(products.id, id))
-      .returning();
-    return product || undefined;
+    const result = await this.products.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: { ...productData, updatedAt: new Date() } },
+      { returnDocument: "after" }
+    );
+    
+    return result ? { ...result, _id: result._id.toString() } : undefined;
   }
 
   async deleteProduct(id: string): Promise<boolean> {
-    const result = await db.delete(products).where(eq(products.id, id));
-    return result.rowCount !== null && result.rowCount > 0;
+    const result = await this.products.deleteOne({ _id: new ObjectId(id) });
+    return result.deletedCount > 0;
   }
 
   async testShopConnection(mongoUri: string): Promise<boolean> {
-    // Since we're using PostgreSQL now, this method can just return true
-    // or implement actual MongoDB connection testing if still needed for shop databases
     try {
-      // For now, just validate the URI format
-      new URL(mongoUri);
+      const client = new MongoClient(mongoUri);
+      await client.connect();
+      await client.db().admin().ping();
+      await client.close();
       return true;
     } catch (error) {
       return false;
@@ -147,4 +189,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MongoStorage();
