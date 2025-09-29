@@ -14,11 +14,14 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  getShops(): Promise<Shop[]>;
-  getShop(id: string): Promise<Shop | undefined>;
-  createShop(shop: InsertShop): Promise<Shop>;
-  updateShop(id: string, shop: Partial<InsertShop>): Promise<Shop | undefined>;
+  getShops(): Promise<Omit<Shop, 'mongoUri'>[]>;
+  getShop(id: string): Promise<Omit<Shop, 'mongoUri'> | undefined>;
+  createShop(shop: InsertShop): Promise<Omit<Shop, 'mongoUri'>>;
+  updateShop(id: string, shop: Partial<InsertShop>): Promise<Omit<Shop, 'mongoUri'> | undefined>;
   deleteShop(id: string): Promise<boolean>;
+  
+  // Internal method for accessing shop with mongoUri (not in public interface)
+  getShopInternal(id: string): Promise<Shop | undefined>;
   
   // Shop-specific database operations
   getShopCategories(shopMongoUri: string): Promise<Category[]>;
@@ -100,17 +103,34 @@ export class MongoStorage implements IStorage {
     return { ...user, _id: user._id.toString() };
   }
 
-  async getShops(): Promise<Shop[]> {
-    const shops = await this.shops.find({}).toArray();
-    return shops.map(shop => ({ ...shop, _id: shop._id.toString() }));
+  // Helper method to sanitize shop data for client responses (remove sensitive mongoUri)
+  private sanitizeShop(shop: Shop): Omit<Shop, 'mongoUri'> {
+    const { mongoUri, ...sanitizedShop } = shop;
+    return sanitizedShop;
   }
 
-  async getShop(id: string): Promise<Shop | undefined> {
+  private sanitizeShops(shops: Shop[]): Omit<Shop, 'mongoUri'>[] {
+    return shops.map(shop => this.sanitizeShop(shop));
+  }
+
+  async getShops(): Promise<Omit<Shop, 'mongoUri'>[]> {
+    const shops = await this.shops.find({}).toArray();
+    const shopsWithStringId = shops.map(shop => ({ ...shop, _id: shop._id.toString() }));
+    return this.sanitizeShops(shopsWithStringId);
+  }
+
+  // Internal method that returns shop with mongoUri (for internal use only)
+  async getShopInternal(id: string): Promise<Shop | undefined> {
     const shop = await this.shops.findOne({ _id: new ObjectId(id) });
     return shop ? { ...shop, _id: shop._id.toString() } : undefined;
   }
 
-  async createShop(shopData: InsertShop): Promise<Shop> {
+  async getShop(id: string): Promise<Omit<Shop, 'mongoUri'> | undefined> {
+    const shop = await this.getShopInternal(id);
+    return shop ? this.sanitizeShop(shop) : undefined;
+  }
+
+  async createShop(shopData: InsertShop): Promise<Omit<Shop, 'mongoUri'>> {
     const result = await this.shops.insertOne({
       ...shopData,
       _id: new ObjectId(),
@@ -121,17 +141,20 @@ export class MongoStorage implements IStorage {
     const shop = await this.shops.findOne({ _id: result.insertedId });
     if (!shop) throw new Error("Failed to create shop");
     
-    return { ...shop, _id: shop._id.toString() };
+    const shopWithStringId = { ...shop, _id: shop._id.toString() };
+    return this.sanitizeShop(shopWithStringId);
   }
 
-  async updateShop(id: string, shopData: Partial<InsertShop>): Promise<Shop | undefined> {
+  async updateShop(id: string, shopData: Partial<InsertShop>): Promise<Omit<Shop, 'mongoUri'> | undefined> {
     const result = await this.shops.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: { ...shopData, updatedAt: new Date() } },
       { returnDocument: "after" }
     );
     
-    return result ? { ...result, _id: result._id.toString() } : undefined;
+    if (!result) return undefined;
+    const shopWithStringId = { ...result, _id: result._id.toString() };
+    return this.sanitizeShop(shopWithStringId);
   }
 
   async deleteShop(id: string): Promise<boolean> {

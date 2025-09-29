@@ -84,7 +84,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/shops/:shopId/categories", requireAuth, async (req, res, next) => {
     try {
       const { shopId } = req.params;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -99,7 +99,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/shops/:shopId/categories", requireAuth, async (req, res, next) => {
     try {
       const { shopId } = req.params;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -115,7 +115,7 @@ export function registerRoutes(app: Express): Server {
   app.put("/api/shops/:shopId/categories/:categoryId", requireAuth, async (req, res, next) => {
     try {
       const { shopId, categoryId } = req.params;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -134,7 +134,7 @@ export function registerRoutes(app: Express): Server {
   app.delete("/api/shops/:shopId/categories/:categoryId", requireAuth, async (req, res, next) => {
     try {
       const { shopId, categoryId } = req.params;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -154,7 +154,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { shopId } = req.params;
       const { category } = req.query;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -169,7 +169,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/shops/:shopId/products", requireAuth, async (req, res, next) => {
     try {
       const { shopId } = req.params;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -185,7 +185,7 @@ export function registerRoutes(app: Express): Server {
   app.put("/api/shops/:shopId/products/:productId", requireAuth, async (req, res, next) => {
     try {
       const { shopId, productId } = req.params;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -204,7 +204,7 @@ export function registerRoutes(app: Express): Server {
   app.delete("/api/shops/:shopId/products/:productId", requireAuth, async (req, res, next) => {
     try {
       const { shopId, productId } = req.params;
-      const shop = await storage.getShop(shopId);
+      const shop = await storage.getShopInternal(shopId);
       if (!shop) {
         return res.status(404).json({ message: "Shop not found" });
       }
@@ -222,24 +222,30 @@ export function registerRoutes(app: Express): Server {
   // Statistics endpoint
   app.get("/api/stats", requireAuth, async (req, res, next) => {
     try {
-      const shops = await storage.getShops();
+      const publicShops = await storage.getShops();
       
-      // Calculate total products across all shop databases
+      // Calculate total products across all shop databases using internal shop data
       let totalProducts = 0;
-      for (const shop of shops.filter(s => s.status === "active")) {
+      const activeShops = publicShops.filter(s => s.status === "active");
+      
+      for (const publicShop of activeShops) {
         try {
-          const products = await storage.getShopProducts(shop.mongoUri);
-          totalProducts += products.length;
+          // Get internal shop data to access mongoUri
+          const internalShop = await storage.getShopInternal(publicShop._id);
+          if (internalShop?.mongoUri) {
+            const products = await storage.getShopProducts(internalShop.mongoUri);
+            totalProducts += products.length;
+          }
         } catch (error) {
           // Skip shops with connection issues
-          console.error(`Failed to get products for shop ${shop.name}:`, error);
+          console.error(`Failed to get products for shop ${publicShop.name}:`, error);
         }
       }
       
       const stats = {
-        totalShops: shops.length,
+        totalShops: publicShops.length,
         totalProducts,
-        activeConnections: shops.filter(shop => shop.status === "active").length,
+        activeConnections: activeShops.length,
         systemStatus: "online",
       };
       
