@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { insertProductSchema, InsertProduct, Shop } from "@shared/schema";
+import { insertProductSchema, InsertProduct, Shop, Product } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,54 +16,100 @@ interface AddProductModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shops: Shop[];
+  productToEdit?: Product;
 }
 
 const categories = ["Shirts", "Pants", "Dresses", "Accessories", "Shoes", "Jackets"];
 const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
-export function AddProductModal({ open, onOpenChange, shops }: AddProductModalProps) {
+export function AddProductModal({ open, onOpenChange, shops, productToEdit }: AddProductModalProps) {
   const { toast } = useToast();
   
   const form = useForm<InsertProduct>({
     resolver: zodResolver(insertProductSchema),
-    defaultValues: {
+    defaultValues: productToEdit ? {
+      name: productToEdit.name,
+      description: productToEdit.description,
+      category: productToEdit.category,
+      price: productToEdit.price,
+      material: productToEdit.material || "",
+      colors: productToEdit.colors || [],
+      inStock: productToEdit.inStock,
+      images: productToEdit.images || [],
+    } : {
       name: "",
       description: "",
       category: "",
       price: 0,
-      size: "",
-      color: "",
-      stock: 0,
-      shopId: "",
+      material: "",
+      colors: [],
+      inStock: true,
       images: [],
     },
   });
 
   const createProductMutation = useMutation({
-    mutationFn: async (productData: InsertProduct) => {
-      const response = await apiRequest("POST", "/api/products", productData);
-      return response.json();
+    mutationFn: async (productData: InsertProduct & { shopId?: string }) => {
+      const selectedShopId = productData.shopId || (productToEdit as any)?.shopId;
+      if (!selectedShopId) {
+        throw new Error("Please select a shop");
+      }
+      
+      if (productToEdit) {
+        const response = await apiRequest("PUT", `/api/shops/${selectedShopId}/products/${productToEdit._id}`, productData);
+        return response.json();
+      } else {
+        const response = await apiRequest("POST", `/api/shops/${selectedShopId}/products`, productData);
+        return response.json();
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
-        title: "Product created",
-        description: "Product has been added successfully.",
+        title: productToEdit ? "Product updated" : "Product created",
+        description: productToEdit ? "Product has been updated successfully." : "Product has been added successfully.",
       });
       form.reset();
       onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to create product",
+        title: productToEdit ? "Failed to update product" : "Failed to create product",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: InsertProduct) => {
+  // Reset form when productToEdit changes
+  useEffect(() => {
+    if (productToEdit) {
+      form.reset({
+        name: productToEdit.name,
+        description: productToEdit.description,
+        category: productToEdit.category,
+        price: productToEdit.price,
+        material: productToEdit.material || "",
+        colors: productToEdit.colors || [],
+        inStock: productToEdit.inStock,
+        images: productToEdit.images || [],
+      });
+    } else {
+      form.reset({
+        name: "",
+        description: "",
+        category: "",
+        price: 0,
+        material: "",
+        colors: [],
+        inStock: true,
+        images: [],
+      });
+    }
+  }, [productToEdit, form]);
+
+  const onSubmit = (data: InsertProduct & { shopId?: string }) => {
     createProductMutation.mutate(data);
   };
 
@@ -70,9 +117,9 @@ export function AddProductModal({ open, onOpenChange, shops }: AddProductModalPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
+          <DialogTitle>{productToEdit ? "Edit Product" : "Add New Product"}</DialogTitle>
           <DialogDescription>
-            Fill in the details below to add a new product to your selected shop.
+            {productToEdit ? "Update the product details below." : "Fill in the details below to add a new product to your selected shop."}
           </DialogDescription>
         </DialogHeader>
         

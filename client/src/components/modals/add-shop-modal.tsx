@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,21 +7,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { insertShopSchema, InsertShop } from "@shared/schema";
+import { insertShopSchema, InsertShop, Shop } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddShopModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  shopToEdit?: Shop;
 }
 
-export function AddShopModal({ open, onOpenChange }: AddShopModalProps) {
+export function AddShopModal({ open, onOpenChange, shopToEdit }: AddShopModalProps) {
   const { toast } = useToast();
   
   const form = useForm<InsertShop>({
     resolver: zodResolver(insertShopSchema),
-    defaultValues: {
+    defaultValues: shopToEdit ? {
+      name: shopToEdit.name,
+      location: shopToEdit.location,
+      mongoUri: shopToEdit.mongoUri,
+      description: shopToEdit.description || "",
+      status: shopToEdit.status,
+    } : {
       name: "",
       location: "",
       mongoUri: "",
@@ -31,27 +39,53 @@ export function AddShopModal({ open, onOpenChange }: AddShopModalProps) {
 
   const createShopMutation = useMutation({
     mutationFn: async (shopData: InsertShop) => {
-      const response = await apiRequest("POST", "/api/shops", shopData);
-      return response.json();
+      if (shopToEdit) {
+        const response = await apiRequest("PUT", `/api/shops/${shopToEdit._id}`, shopData);
+        return response.json();
+      } else {
+        const response = await apiRequest("POST", "/api/shops", shopData);
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shops"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
-        title: "Shop created",
-        description: "Shop has been added successfully and MongoDB connection verified.",
+        title: shopToEdit ? "Shop updated" : "Shop created",
+        description: shopToEdit ? "Shop has been updated successfully." : "Shop has been added successfully and MongoDB connection verified.",
       });
       form.reset();
       onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to create shop",
+        title: shopToEdit ? "Failed to update shop" : "Failed to create shop",
         description: error.message,
         variant: "destructive",
       });
     },
   });
+
+  // Reset form when shopToEdit changes
+  useEffect(() => {
+    if (shopToEdit) {
+      form.reset({
+        name: shopToEdit.name,
+        location: shopToEdit.location,
+        mongoUri: shopToEdit.mongoUri,
+        description: shopToEdit.description || "",
+        status: shopToEdit.status,
+      });
+    } else {
+      form.reset({
+        name: "",
+        location: "",
+        mongoUri: "",
+        description: "",
+        status: "pending",
+      });
+    }
+  }, [shopToEdit, form]);
 
   const onSubmit = (data: InsertShop) => {
     createShopMutation.mutate(data);
@@ -61,7 +95,7 @@ export function AddShopModal({ open, onOpenChange }: AddShopModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Shop</DialogTitle>
+          <DialogTitle>{shopToEdit ? "Edit Shop" : "Add New Shop"}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -131,7 +165,7 @@ export function AddShopModal({ open, onOpenChange }: AddShopModalProps) {
               disabled={createShopMutation.isPending}
               data-testid="button-submit-shop"
             >
-              {createShopMutation.isPending ? "Adding Shop..." : "Add Shop"}
+              {createShopMutation.isPending ? (shopToEdit ? "Updating Shop..." : "Adding Shop...") : (shopToEdit ? "Update Shop" : "Add Shop")}
             </Button>
             <Button 
               type="button" 

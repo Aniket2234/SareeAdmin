@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ShopsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingShop, setEditingShop] = useState<Shop | null>(null);
+  const [viewingShop, setViewingShop] = useState<Shop | null>(null);
   const { toast } = useToast();
 
   const { data: shops = [], isLoading } = useQuery<Shop[]>({
@@ -146,6 +148,7 @@ export default function ShopsPage() {
                                 variant="ghost"
                                 size="sm"
                                 title="View Catalog"
+                                onClick={() => setViewingShop(shop)}
                                 data-testid={`button-view-catalog-${shop._id}`}
                               >
                                 <Eye className="w-4 h-4" />
@@ -154,6 +157,7 @@ export default function ShopsPage() {
                                 variant="ghost"
                                 size="sm"
                                 title="Edit Shop"
+                                onClick={() => setEditingShop(shop)}
                                 data-testid={`button-edit-shop-${shop._id}`}
                               >
                                 <Edit className="w-4 h-4" />
@@ -201,6 +205,53 @@ export default function ShopsPage() {
         open={showAddModal} 
         onOpenChange={setShowAddModal}
       />
+      
+      {/* Edit Shop Modal */}
+      {editingShop && (
+        <AddShopModal 
+          open={!!editingShop} 
+          onOpenChange={(open) => !open && setEditingShop(null)}
+          shopToEdit={editingShop}
+        />
+      )}
+      
+      {/* View Shop Details Modal */}
+      {viewingShop && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-card border border-border rounded-lg max-w-md w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Shop Details</h3>
+              <Button variant="ghost" size="sm" onClick={() => setViewingShop(null)}>
+                ✕
+              </Button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Shop Name</p>
+                <p className="font-medium text-foreground">{viewingShop.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Location</p>
+                <p className="font-medium text-foreground">{viewingShop.location}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <Badge variant={viewingShop.status === "active" ? "default" : "secondary"}>
+                  {viewingShop.status}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Description</p>
+                <p className="font-medium text-foreground">{viewingShop.description || "No description"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Created</p>
+                <p className="font-medium text-foreground">{new Date(viewingShop.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

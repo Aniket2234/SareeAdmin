@@ -18,6 +18,8 @@ export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSize, setSelectedSize] = useState("all");
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
 
   const { data: shops = [] } = useQuery<Shop[]>({
@@ -255,13 +257,19 @@ export default function CatalogPage() {
                       )}
                     </div>
                     <div className="flex items-center space-x-2 mt-4">
-                      <Button size="sm" className="flex-1" data-testid={`button-edit-product-${product._id}`}>
+                      <Button 
+                        size="sm" 
+                        className="flex-1" 
+                        onClick={() => setEditingProduct(product)}
+                        data-testid={`button-edit-product-${product._id}`}
+                      >
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
+                        onClick={() => setViewingProduct(product)}
                         data-testid={`button-view-product-${product._id}`}
                       >
                         <Eye className="w-3 h-3" />
@@ -305,6 +313,72 @@ export default function CatalogPage() {
         onOpenChange={setShowAddModal}
         shops={shops}
       />
+      
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <AddProductModal 
+          open={!!editingProduct} 
+          onOpenChange={(open) => !open && setEditingProduct(null)}
+          shops={shops}
+          productToEdit={editingProduct}
+        />
+      )}
+      
+      {/* View Product Details Modal */}
+      {viewingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-card border border-border rounded-lg max-w-md w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Product Details</h3>
+              <Button variant="ghost" size="sm" onClick={() => setViewingProduct(null)}>
+                ✕
+              </Button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Product Name</p>
+                <p className="font-medium text-foreground">{viewingProduct.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Category</p>
+                <p className="font-medium text-foreground">{viewingProduct.category}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Price</p>
+                <p className="font-medium text-foreground">₹{viewingProduct.price.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Description</p>
+                <p className="font-medium text-foreground">{viewingProduct.description}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Material</p>
+                <p className="font-medium text-foreground">{viewingProduct.material || "Not specified"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Colors</p>
+                <div className="flex flex-wrap gap-1">
+                  {viewingProduct.colors?.map((color, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {color}
+                    </Badge>
+                  )) || <p className="text-muted-foreground text-sm">No colors specified</p>}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">In Stock</p>
+                <Badge variant={viewingProduct.inStock ? "default" : "destructive"}>
+                  {viewingProduct.inStock ? "Yes" : "No"}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Shop</p>
+                <p className="font-medium text-foreground">{getShopName((viewingProduct as any).shopId)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
