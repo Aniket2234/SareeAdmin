@@ -34,19 +34,29 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
       description: productToEdit.description,
       category: productToEdit.category,
       price: productToEdit.price,
+      originalPrice: productToEdit.originalPrice,
+      discountPercentage: productToEdit.discountPercentage,
       material: productToEdit.material || "",
       colors: productToEdit.colors || [],
       inStock: productToEdit.inStock,
       images: productToEdit.images || [],
+      collectionType: productToEdit.collectionType,
+      rating: productToEdit.rating,
+      reviewCount: productToEdit.reviewCount,
     } : {
       name: "",
       description: "",
       category: "",
       price: 0,
+      originalPrice: undefined,
+      discountPercentage: undefined,
       material: "",
       colors: [],
       inStock: true,
       images: [],
+      collectionType: undefined,
+      rating: undefined,
+      reviewCount: undefined,
     },
   });
 
@@ -107,10 +117,15 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
         description: productToEdit.description,
         category: productToEdit.category,
         price: productToEdit.price,
+        originalPrice: productToEdit.originalPrice,
+        discountPercentage: productToEdit.discountPercentage,
         material: productToEdit.material || "",
         colors: productToEdit.colors || [],
         inStock: productToEdit.inStock,
         images: productToEdit.images || [],
+        collectionType: productToEdit.collectionType,
+        rating: productToEdit.rating,
+        reviewCount: productToEdit.reviewCount,
       });
     } else {
       setSelectedShopId("");
@@ -119,10 +134,15 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
         description: "",
         category: "",
         price: 0,
+        originalPrice: undefined,
+        discountPercentage: undefined,
         material: "",
         colors: [],
         inStock: true,
         images: [],
+        collectionType: undefined,
+        rating: undefined,
+        reviewCount: undefined,
       });
     }
   }, [productToEdit, form]);
@@ -229,6 +249,40 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
             </div>
           </div>
           
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="product-original-price">Original Price (₹)</Label>
+              <Input
+                id="product-original-price"
+                type="number"
+                placeholder="0.00"
+                {...form.register("originalPrice", { valueAsNumber: true })}
+              />
+              {form.formState.errors.originalPrice && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.originalPrice.message}
+                </p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="product-discount">Discount Percentage (%)</Label>
+              <Input
+                id="product-discount"
+                type="number"
+                placeholder="0"
+                min="0"
+                max="100"
+                {...form.register("discountPercentage", { valueAsNumber: true })}
+              />
+              {form.formState.errors.discountPercentage && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.discountPercentage.message}
+                </p>
+              )}
+            </div>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="product-description">Description *</Label>
             <Textarea
@@ -284,6 +338,54 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
                   <SelectItem value="false">No</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="product-collection-type">Collection Type</Label>
+              <Input
+                id="product-collection-type"
+                placeholder="e.g., trending, exclusive, new"
+                {...form.register("collectionType")}
+              />
+              <p className="text-xs text-muted-foreground">
+                Tag for grouping products (trending, exclusive, etc.)
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="product-rating">Rating (0-5)</Label>
+              <Input
+                id="product-rating"
+                type="number"
+                placeholder="0"
+                min="0"
+                max="5"
+                step="0.1"
+                {...form.register("rating", { valueAsNumber: true })}
+              />
+              {form.formState.errors.rating && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.rating.message}
+                </p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="product-review-count">Review Count</Label>
+              <Input
+                id="product-review-count"
+                type="number"
+                placeholder="0"
+                min="0"
+                {...form.register("reviewCount", { valueAsNumber: true })}
+              />
+              {form.formState.errors.reviewCount && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.reviewCount.message}
+                </p>
+              )}
             </div>
           </div>
           
