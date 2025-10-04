@@ -27,12 +27,14 @@ export function AddShopModal({ open, onOpenChange, shopToEdit }: AddShopModalPro
       location: shopToEdit.location,
       mongoUri: shopToEdit.mongoUri,
       description: shopToEdit.description || "",
+      imageUrl: shopToEdit.imageUrl || "",
       status: shopToEdit.status,
     } : {
       name: "",
       location: "",
       mongoUri: "",
       description: "",
+      imageUrl: "",
       status: "pending",
     },
   });
@@ -74,6 +76,7 @@ export function AddShopModal({ open, onOpenChange, shopToEdit }: AddShopModalPro
         location: shopToEdit.location,
         mongoUri: shopToEdit.mongoUri,
         description: shopToEdit.description || "",
+        imageUrl: shopToEdit.imageUrl || "",
         status: shopToEdit.status,
       });
     } else {
@@ -82,6 +85,7 @@ export function AddShopModal({ open, onOpenChange, shopToEdit }: AddShopModalPro
         location: "",
         mongoUri: "",
         description: "",
+        imageUrl: "",
         status: "pending",
       });
     }
@@ -156,6 +160,24 @@ export function AddShopModal({ open, onOpenChange, shopToEdit }: AddShopModalPro
               data-testid="textarea-shop-description"
               {...form.register("description")}
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="shop-image-url">Shop Image URL</Label>
+            <Input
+              id="shop-image-url"
+              placeholder="https://example.com/shop-image.jpg"
+              data-testid="input-shop-image-url"
+              {...form.register("imageUrl")}
+            />
+            <p className="text-xs text-muted-foreground">
+              Add an image URL to display with your shop
+            </p>
+            {form.formState.errors.imageUrl && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.imageUrl.message}
+              </p>
+            )}
           </div>
           
           <div className="flex items-center space-x-4 pt-4">

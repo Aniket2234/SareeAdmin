@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { insertProductSchema, InsertProduct, Shop, Product } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2 } from "lucide-react";
 
 interface AddProductModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 export function AddProductModal({ open, onOpenChange, shops, productToEdit }: AddProductModalProps) {
   const { toast } = useToast();
   const [selectedShopId, setSelectedShopId] = useState<string>(productToEdit ? (productToEdit as any).shopId || "" : "");
+  const [imageUrls, setImageUrls] = useState<string[]>(productToEdit?.images || [""]);
   
   const form = useForm<InsertProduct>({
     resolver: zodResolver(insertProductSchema),
@@ -112,6 +114,7 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
     if (productToEdit) {
       const shopId = (productToEdit as any).shopId || "";
       setSelectedShopId(shopId);
+      setImageUrls(productToEdit.images && productToEdit.images.length > 0 ? productToEdit.images : [""]);
       form.reset({
         name: productToEdit.name,
         description: productToEdit.description,
@@ -129,6 +132,7 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
       });
     } else {
       setSelectedShopId("");
+      setImageUrls([""]);
       form.reset({
         name: "",
         description: "",
@@ -148,8 +152,24 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
   }, [productToEdit, form]);
 
   const onSubmit = (data: InsertProduct & { shopId?: string }) => {
-    const submitData = { ...data, shopId: selectedShopId };
+    const filteredImages = imageUrls.filter(url => url.trim().length > 0);
+    const submitData = { ...data, images: filteredImages, shopId: selectedShopId };
     createProductMutation.mutate(submitData);
+  };
+
+  const addImageUrl = () => {
+    setImageUrls([...imageUrls, ""]);
+  };
+
+  const removeImageUrl = (index: number) => {
+    const newUrls = imageUrls.filter((_, i) => i !== index);
+    setImageUrls(newUrls.length > 0 ? newUrls : [""]);
+  };
+
+  const updateImageUrl = (index: number, value: string) => {
+    const newUrls = [...imageUrls];
+    newUrls[index] = value;
+    setImageUrls(newUrls);
   };
 
   return (
@@ -390,21 +410,48 @@ export function AddProductModal({ open, onOpenChange, shops, productToEdit }: Ad
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="product-images">Image URLs (comma-separated)</Label>
-            <Textarea
-              id="product-images"
-              rows={2}
-              placeholder="e.g., https://example.com/image1.jpg, https://example.com/image2.jpg"
-              data-testid="textarea-product-images"
-              value={form.watch("images")?.join(", ") || ""}
-              onChange={(e) => {
-                const imagesString = e.target.value;
-                const imagesArray = imagesString.split(",").map(url => url.trim()).filter(url => url.length > 0);
-                form.setValue("images", imagesArray);
-              }}
-            />
+            <div className="flex items-center justify-between">
+              <Label>Product Images</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addImageUrl}
+                className="h-8"
+                data-testid="button-add-image"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Add Image
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {imageUrls.map((url, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder={`Image URL ${index + 1}${index === 0 ? ' (Main)' : ''}`}
+                      value={url}
+                      onChange={(e) => updateImageUrl(index, e.target.value)}
+                      data-testid={`input-product-image-${index}`}
+                    />
+                  </div>
+                  {imageUrls.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeImageUrl(index)}
+                      className="h-10 px-3"
+                      data-testid={`button-remove-image-${index}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Add image URLs separated by commas. The first image will be used as the main product image.
+              The first image will be used as the main product image. Click "Add Image" to add more images.
             </p>
           </div>
           

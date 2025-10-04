@@ -17,6 +17,7 @@ export const shopSchema = z.object({
   location: z.string().min(1, "Location is required"),
   mongoUri: z.string().min(1, "MongoDB URI is required"),
   description: z.string().optional(),
+  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   status: z.enum(["active", "pending", "inactive"]).default("pending"),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),

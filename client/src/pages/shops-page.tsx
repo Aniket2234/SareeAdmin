@@ -68,120 +68,116 @@ export default function ShopsPage() {
         
         {/* Main Content */}
         <main className="p-6">
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left px-6 py-4 text-muted-foreground font-medium">Shop Name</th>
-                      <th className="text-left px-6 py-4 text-muted-foreground font-medium">Location</th>
-                      <th className="text-left px-6 py-4 text-muted-foreground font-medium">MongoDB Status</th>
-                      <th className="text-left px-6 py-4 text-muted-foreground font-medium">Status</th>
-                      <th className="text-left px-6 py-4 text-muted-foreground font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {isLoading ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                          Loading shops...
-                        </td>
-                      </tr>
-                    ) : shops.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center">
-                          <div className="flex flex-col items-center">
-                            <Store className="w-12 h-12 text-muted-foreground mb-4" />
-                            <p className="text-muted-foreground">No shops added yet</p>
-                            <Button 
-                              variant="outline" 
-                              className="mt-4" 
-                              onClick={() => setShowAddModal(true)}
-                              data-testid="button-add-first-shop"
-                            >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Your First Shop
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      shops.map((shop) => (
-                        <tr key={shop._id} className="hover:bg-muted/50" data-testid={`row-shop-${shop._id}`}>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mr-3">
-                                <Store className="w-5 h-5 text-primary-foreground" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-foreground" data-testid={`text-shop-name-${shop._id}`}>
-                                  {shop.name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">ID: {shop._id.slice(-6)}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-foreground" data-testid={`text-shop-location-${shop._id}`}>
-                            {shop.location}
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge variant="outline" className="text-green-800 border-green-200 bg-green-50">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Connected
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge 
-                              variant={
-                                shop.status === "active" ? "default" : 
-                                shop.status === "pending" ? "secondary" : "destructive"
-                              }
-                              data-testid={`status-${shop._id}`}
-                            >
-                              {shop.status}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="View Catalog"
-                                onClick={() => setViewingShop(shop)}
-                                data-testid={`button-view-catalog-${shop._id}`}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Edit Shop"
-                                onClick={() => setEditingShop(shop)}
-                                data-testid={`button-edit-shop-${shop._id}`}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Delete Shop"
-                                onClick={() => handleDeleteShop(shop)}
-                                disabled={deleteShopMutation.isPending}
-                                data-testid={`button-delete-shop-${shop._id}`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">
+              Loading shops...
+            </div>
+          ) : shops.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center py-12">
+                <Store className="w-16 h-16 text-muted-foreground mb-4" />
+                <p className="text-lg text-muted-foreground mb-2">No shops added yet</p>
+                <p className="text-sm text-muted-foreground mb-4">Create your first shop to get started</p>
+                <Button 
+                  onClick={() => setShowAddModal(true)}
+                  data-testid="button-add-first-shop"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Shop
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {shops.map((shop) => (
+                <Card key={shop._id} className="overflow-hidden hover:shadow-lg transition-shadow" data-testid={`card-shop-${shop._id}`}>
+                  <div className="aspect-video w-full bg-muted relative overflow-hidden">
+                    {shop.imageUrl ? (
+                      <img 
+                        src={shop.imageUrl} 
+                        alt={shop.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement!.querySelector('.fallback-icon')?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`fallback-icon absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 ${shop.imageUrl ? 'hidden' : ''}`}>
+                      <Store className="w-16 h-16 text-primary/40" />
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <Badge 
+                        variant={
+                          shop.status === "active" ? "default" : 
+                          shop.status === "pending" ? "secondary" : "destructive"
+                        }
+                        data-testid={`status-${shop._id}`}
+                      >
+                        {shop.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-lg text-foreground truncate" data-testid={`text-shop-name-${shop._id}`}>
+                          {shop.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground flex items-center mt-1" data-testid={`text-shop-location-${shop._id}`}>
+                          📍 {shop.location}
+                        </p>
+                      </div>
+                      
+                      {shop.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {shop.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center pt-2">
+                        <Badge variant="outline" className="text-green-800 border-green-200 bg-green-50 text-xs">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Connected
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 pt-2 border-t border-border">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setViewingShop(shop)}
+                          data-testid={`button-view-catalog-${shop._id}`}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingShop(shop)}
+                          data-testid={`button-edit-shop-${shop._id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteShop(shop)}
+                          disabled={deleteShopMutation.isPending}
+                          data-testid={`button-delete-shop-${shop._id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </main>
         
         {/* Footer */}
